@@ -1,0 +1,7 @@
+CozyLite Shaderpack License
+Copyright (c) 2026
+
+Permission is granted to use, copy, modify, include and redistribute this shaderpack,
+including as part of free Minecraft modpacks, provided that this license and a visible
+credit to “CozyLite Shaders” are retained. Selling the shaderpack itself or a minimally
+modified copy is not permitted. The shaderpack is provided “as is”, without warranty.
