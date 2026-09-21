@@ -12,9 +12,15 @@ core shader Minecraft, которого нет в CozyCraft. Это извест
 1.8.0 на Minecraft 1.20.1: аналогичная ошибка зарегистрирована у Oculus для
 `moving_block.json` и `terrain_translucent.json`.
 
+## Исправление в CozyCraft 3.1
+
+В пакете удалён необязательный override `gbuffers_line`, который заставлял Oculus 1.8.0
+заходить в проблемный hook загрузки `shaders/core/lines.json`. Отрисовка линий теперь
+использует безопасный loader fallback. Это отличие 3.1 от 3.0.
+
 ## Рабочая диагностика для 1.20.1 Forge
 
-1. Использовать Java 17, а не Java 21.
+1. Использовать Java 17. Если Oculus 1.8.0 продолжает падать даже на других пакетах, проверить Oculus 1.7.0 + Embeddium 0.3.28 или Oculus 1.6.15a для MC 1.20.1.
 2. Полностью удалить OptiFine/OptiFabric/Iris из этой Forge-сборки.
 3. Оставить для теста только Forge + Embeddium + Oculus совместимых версий.
 4. Удалить старый Rubidium, если установлен Embeddium. Не держать их одновременно.

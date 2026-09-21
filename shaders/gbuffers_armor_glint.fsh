@@ -3,17 +3,18 @@
 precision mediump float;
 #endif
 /* DRAWBUFFERS:012 */
+#include "/lib/common.glsl"
 uniform sampler2D texture;
-uniform sampler2D lightmap;
+uniform float frameTimeCounter;
 varying vec2 texcoord;
-varying vec2 lmcoord;
 varying vec4 vertexColor;
 varying vec3 viewNormal;
-void main() {
-    vec4 albedo = texture2D(texture, texcoord) * vertexColor;
-    if (albedo.a < 0.1) discard;
-    vec3 light = texture2D(lightmap, lmcoord).rgb;
-    gl_FragData[0] = vec4(albedo.rgb * light, albedo.a);
-    gl_FragData[1] = vec4(viewNormal * 0.5 + 0.5, 1.0);
-    gl_FragData[2] = vec4(lmcoord, 0.0, 1.0);
+void main(){
+    vec2 uv=texcoord+vec2(frameTimeCounter*.015,-frameTimeCounter*.009);
+    vec4 g=texture2D(texture,uv)*vertexColor;
+    if(g.a<.02)discard;
+    float pulse=.78+.22*sin(frameTimeCounter*2.3+texcoord.x*18.0);
+    gl_FragData[0]=vec4(g.rgb*vec3(.82,.64,1.18)*pulse,g.a*.68);
+    gl_FragData[1]=vec4(encodeNormal(normalize(viewNormal)),1.0);
+    gl_FragData[2]=vec4(1.0,1.0,0.0,.5);
 }

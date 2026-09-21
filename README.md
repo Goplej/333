@@ -145,3 +145,11 @@ The large download size comes from actual high-entropy atmospheric data rather t
 padding or repeated source. Shader code remains modular because duplicating identical
 GLSL thousands of times would increase compile time and reduce performance. Assets can
 be reproduced with `tools/generate_assets.py` (Pillow + NumPy).
+
+## 3.1 Oculus line-pipeline compatibility
+
+The explicit `gbuffers_line` override was removed. Oculus 1.8.0 on Minecraft 1.20.1
+can enter its broken cancellable core-shader hook when a pack supplies that optional
+program, producing `Invalid shaders/core/lines.json`. Lines now use the loader fallback,
+while terrain, entities, weather, beacon beam, glint, damage overlay and emissive eyes
+retain dedicated non-duplicated programs.
