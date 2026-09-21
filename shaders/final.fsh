@@ -70,8 +70,8 @@ void main(){
     color=mix(color,(cN+cS+cE+cW)*.25,smoothstep(.08,.25,edge)*.36);
 #endif
     color=acesFilm(cozyGrade(color*EXPOSURE));
-    // Чуть поднятые тени и корректная выдача в sRGB.
-    color=pow(color,vec3(1.0/2.2));
+    // G-buffer legacy pipeline уже содержит gamma-encoded texture/lightmap values.
+    // Не применяем вторую gamma-коррекцию: она давала молочно-белую картинку.
     float vignette=1.0-dot(texcoord-.5,texcoord-.5)*.36;
     gl_FragColor=vec4(color*vignette,1.0);
 }

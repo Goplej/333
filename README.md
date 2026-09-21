@@ -151,3 +151,12 @@ Fresnel, sun glint and ordinary alpha blending. The already-rendered terrain rem
 visible through blending without a framebuffer race. The composite sky now replaces the
 vanilla horizon instead of mixing over it, and cloud ray jitter was reduced from a full
 march step to 14% to remove the full-screen static visible in 3.1.
+
+## 5.0 visual cleanup from in-game screenshots
+
+The daytime static was traced to two spatially random integrations without temporal
+accumulation: full-step cloud ray jitter and per-pixel god-ray jitter. Both are now
+stable. Volumetric noise frequencies are 4.2× larger in world scale, cloud segment
+opacity is clamped near the horizon, the duplicate skybasic cloud march is removed,
+and shafts receive a radial falloff. Legacy double-gamma output was removed to restore
+contrast and color. Default fog and shaft intensity were reduced.

@@ -48,10 +48,10 @@ float cloudNoise3D(vec3 p, float speed) {
 float cloudDensity(vec3 p, float height01) {
     // 4 движущихся слоя 2D-noise имитируют 3D Simplex намного дешевле настоящего 3D texture.
     p *= CLOUD_SCALE;
-    float n = cloudNoise3D(p*0.0030, 0.0018)*0.50;
-    n += cloudNoise3D(p*0.0061+17.0,-0.0011)*0.27;
-    n += cloudNoise3D(p*0.0123+41.0,0.0027)*0.15;
-    n += cloudNoise3D(p*0.0247+83.0,-0.0039)*0.08;
+    float n = cloudNoise3D(p*0.00072, 0.0018)*0.50;
+    n += cloudNoise3D(p*0.00144+17.0,-0.0011)*0.27;
+    n += cloudNoise3D(p*0.00288+41.0,0.0027)*0.15;
+    n += cloudNoise3D(p*0.00576+83.0,-0.0039)*0.08;
     float vertical = smoothstep(0.0,0.14,height01) * (1.0-smoothstep(0.72,1.0,height01));
     return smoothstep(CLOUD_COVERAGE-0.09,CLOUD_COVERAGE+0.11,n) * vertical;
 }
@@ -67,7 +67,7 @@ vec4 raymarchClouds(vec3 ro, vec3 rd, vec3 sunDir) {
     float dt=(t1-t0)/float(CLOUD_STEPS);
     // Полный случайный сдвиг на один шаг создавал крупное зерно без TAA.
     // Оставляем только слабый стабильный dither вокруг центра сегмента.
-    float jitter=.5+(hash12(mod(gl_FragCoord.xy,vec2(8.0)))-.5)*.14;
+    float jitter=.5;
     vec4 sum=vec4(0.0);
     for(int i=0;i<14;i++) {
         if(i>=CLOUD_STEPS || sum.a>0.96) break;
@@ -82,7 +82,7 @@ vec4 raymarchClouds(vec3 ro, vec3 rd, vec3 sunDir) {
         vec3 topCol=mix(vec3(1.08,.94,.79),vec3(.54,.57,.61),rainStrength);
         vec3 lit=mix(bottomCol,topCol,smoothstep(0.05,.9,h));
         lit += vec3(1.0,.68,.34)*silver*(1.0-rainStrength*.7);
-        float a=d*(0.22+dt*0.0018);
+        float a=d*min(0.34,0.16+dt*0.00055);
         sum.rgb += (1.0-sum.a)*lit*a;
         sum.a += (1.0-sum.a)*a;
     }
@@ -129,7 +129,8 @@ vec3 lightShafts(vec2 uv, vec2 lightUV, vec3 lightColor) {
 #else
     if(GODRAY_INTENSITY<0.01 || any(lessThan(lightUV,vec2(-.1))) || any(greaterThan(lightUV,vec2(1.1)))) return vec3(0.0);
     vec2 delta=(uv-lightUV)/float(GODRAY_SAMPLES);
-    float jitter=hash12(gl_FragCoord.xy+floor(frameTimeCounter*20.0));
+    // Без случайного screen-space jitter: без temporal accumulation он превращался в статический шум.
+    float jitter=.5;
     vec2 p=uv-delta*jitter;
     float illumination=1.0, accum=0.0;
     for(int i=0;i<24;i++) {
@@ -143,7 +144,9 @@ vec3 lightShafts(vec2 uv, vec2 lightUV, vec3 lightColor) {
         accum += visible*illumination;
         illumination*=GODRAY_DECAY;
     }
-    return lightColor*accum/float(GODRAY_SAMPLES)*GODRAY_INTENSITY;
+    float radial=1.0-smoothstep(.08,1.05,length(uv-lightUV));
+    radial*=radial;
+    return lightColor*accum/float(GODRAY_SAMPLES)*GODRAY_INTENSITY*radial;
 #endif
 }
 
@@ -192,21 +195,36 @@ void main() {
     vec3 worldRay=normalize((gbufferModelViewInverse*vec4(normalize(viewPos),0.0)).xyz);
     vec3 sunWorld=normalize(mat3(gbufferModelViewInverse)*sunPosition);
 
-    if(depth>.9998) {
+    if(depth>.999999) {
 #if defined(DIM_NETHER)
         color=mix(vec3(.055,.008,.004),vec3(.31,.045,.012),pow(saturate(worldRay.y*.5+.5),1.6));
 #elif defined(DIM_END)
         float stars=step(.9975,hash12(floor((worldRay.xy/max(abs(worldRay.z),.15))*420.0)));
         color=vec3(.012,.006,.025)+vec3(.34,.20,.55)*stars;
 #else
-        // Полностью заменяем vanilla sky. Это убирает чёрную полосу у горизонта.
+        // Полностью заменяем vanilla sky. Более мягкий порог нужен Oculus у far plane.
         color=analyticSky(worldRay,sunWorld,rainStrength,float(worldTime)/24000.0);
+        bool skyDay=(worldTime<12700 || worldTime>23250);
+        if(!skyDay) {
+            vec3 moonWorld=normalize(mat3(gbufferModelViewInverse)*moonPosition);
+            float starCell=hash12(floor((worldRay.xz/max(abs(worldRay.y),.12))*520.0));
+            float stars=step(.9968,starCell)*smoothstep(-.05,.28,worldRay.y);
+            stars*=1.0-rainStrength;
+            float moon=smoothstep(.9987,.99955,dot(worldRay,moonWorld));
+            color+=vec3(.55,.66,.88)*stars*.62+vec3(.86,.90,1.0)*moon*1.6;
+        }
         vec4 clouds=raymarchClouds(cameraPosition,worldRay,sunWorld);
         color=mix(color,clouds.rgb/max(clouds.a,.001),clouds.a);
 #endif
     } else {
         float shadow=shadowPCF(worldPos);
-        color*=mix(.58,1.0,shadow);
+        vec3 sunView=normalize(sunPosition);
+        float nDotL=saturate(dot(normal,sunView));
+        bool surfaceDay=(worldTime<12700 || worldTime>23250);
+        float direct=surfaceDay?nDotL*shadow*(1.0-rainStrength*.72):0.0;
+        color*=mix(.64,1.0,shadow);
+        color*=mix(vec3(1.0),vec3(1.08,1.025,.93),direct*.24);
+        color*=.94+direct*.12;
         color*=cheapAO(uv,depth,normal);
         if(material.b>.72) {
             vec3 refl=screenReflection(uv,viewPos,normal,color);
@@ -225,7 +243,7 @@ void main() {
 #ifdef VOLUMETRIC_FOG
     if(depth<.9999) {
         float distanceFog=length(viewPos);
-        float fog=1.0-exp(-distanceFog*(.0022+.0045*rainStrength)*FOG_STRENGTH);
+        float fog=1.0-exp(-distanceFog*(.00135+.0028*rainStrength)*FOG_STRENGTH);
         float noise=texture2D(noisetex,fract(worldPos.xz*.002+frameTimeCounter*.0007)).r;
         fog*=mix(.82,1.14,noise);
         float scatter=pow(saturate(dot(worldRay,sunWorld)),8.0)*(1.0-rainStrength*.5);
