@@ -44,5 +44,3 @@ option.EMISSIVE_STRENGTH=Emissive Block Brightness
 option.FXAA=Sharp FXAA
 option.EXPOSURE=Exposure
 option.SATURATION=Saturation
-option.HD_ASSETS=HD Atmosphere Textures
-option.HD_ASSETS.comment=Loads 4K noise/weather and 2K water/blue-noise. Uses about 100 MB VRAM; disabled on low profiles.

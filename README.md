@@ -1,4 +1,4 @@
-# CozyLite Shaders
+# CozyCraft Shaders 4.0
 
 **CozyLite** — лёгкий legacy-шейдерпак GLSL 1.20 для Minecraft 1.12.2–1.21.x, OptiFine, Iris/Sodium и Oculus/Embeddium. Его цель — тёплая кинематографичная картинка на встроенной Intel HD и видеокартах класса GT 730 / GTX 750 Ti без десятка полноэкранных проходов.
 
@@ -133,19 +133,6 @@ CozyLite/
 - Не объединяйте два shader loader в одной сборке. OptiFine, Iris и Oculus — альтернативы, а не дополнения друг к другу.
 - Для Create, крупной генерации мира и 200+ модов начинайте с Fast/Balanced и 8–10 чанков. Animated contraptions и нестандартные translucent render layers могут не иметь SSR, но сохранят базовое освещение.
 
-## Cinematic HD assets
-
-Release 3.0 includes roughly 77 MiB of deterministic texture data: two 4096² cloud
-noise fields, a 4096² RGB weather map, a 2048² water-normal field and a 2048²
-blue-noise texture. `HD_ASSETS` is disabled in Potato/Fast/Balanced, so these textures
-do not consume VRAM on weak profiles. Pretty and Ultra enable them for less tiling,
-more varied cloud fronts, finer water normals and cleaner ray-march jitter.
-
-The large download size comes from actual high-entropy atmospheric data rather than
-padding or repeated source. Shader code remains modular because duplicating identical
-GLSL thousands of times would increase compile time and reduce performance. Assets can
-be reproduced with `tools/generate_assets.py` (Pillow + NumPy).
-
 ## 3.1 Oculus line-pipeline compatibility
 
 The explicit `gbuffers_line` override was removed. Oculus 1.8.0 on Minecraft 1.20.1
@@ -153,3 +140,14 @@ can enter its broken cancellable core-shader hook when a pack supplies that opti
 program, producing `Invalid shaders/core/lines.json`. Lines now use the loader fallback,
 while terrain, entities, weather, beacon beam, glint, damage overlay and emissive eyes
 retain dedicated non-duplicated programs.
+
+
+## 4.0 framebuffer-feedback fix
+
+Water no longer samples `colortex0` while rendering into `colortex0`. That operation is
+undefined in OpenGL and on Oculus/Embeddium exposed the complete block texture atlas in
+water reflections. Water now uses three procedural wave octaves, analytic sky reflection,
+Fresnel, sun glint and ordinary alpha blending. The already-rendered terrain remains
+visible through blending without a framebuffer race. The composite sky now replaces the
+vanilla horizon instead of mixing over it, and cloud ray jitter was reduced from a full
+march step to 14% to remove the full-screen static visible in 3.1.

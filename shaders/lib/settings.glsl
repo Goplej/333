@@ -17,7 +17,6 @@
 #define LEAF_SSS
 #define WAVING_FOLIAGE
 #define FXAA
-//#define HD_ASSETS
 
 #define CLOUD_STEPS 8 // [4 6 8 10 12 14]
 #define CLOUD_SCALE 1.0 // [0.5 0.7 1.0 1.3 1.6 2.0]

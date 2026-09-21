@@ -44,5 +44,3 @@ option.EMISSIVE_STRENGTH=Яркость светящихся блоков
 option.FXAA=Чёткое сглаживание
 option.EXPOSURE=Экспозиция
 option.SATURATION=Насыщенность
-option.HD_ASSETS=HD-текстуры атмосферы
-option.HD_ASSETS.comment=Загружает 4K noise/weather и 2K water/blue-noise. Требует около 100 МБ VRAM; выключено на слабых профилях.
