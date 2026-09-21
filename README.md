@@ -132,3 +132,16 @@ CozyLite/
 - **NeoForge:** используйте актуальный Iris/Oculus-порт, заявляющий поддержку вашей версии игры.
 - Не объединяйте два shader loader в одной сборке. OptiFine, Iris и Oculus — альтернативы, а не дополнения друг к другу.
 - Для Create, крупной генерации мира и 200+ модов начинайте с Fast/Balanced и 8–10 чанков. Animated contraptions и нестандартные translucent render layers могут не иметь SSR, но сохранят базовое освещение.
+
+## Cinematic HD assets
+
+Release 3.0 includes roughly 77 MiB of deterministic texture data: two 4096² cloud
+noise fields, a 4096² RGB weather map, a 2048² water-normal field and a 2048²
+blue-noise texture. `HD_ASSETS` is disabled in Potato/Fast/Balanced, so these textures
+do not consume VRAM on weak profiles. Pretty and Ultra enable them for less tiling,
+more varied cloud fronts, finer water normals and cleaner ray-march jitter.
+
+The large download size comes from actual high-entropy atmospheric data rather than
+padding or repeated source. Shader code remains modular because duplicating identical
+GLSL thousands of times would increase compile time and reduce performance. Assets can
+be reproduced with `tools/generate_assets.py` (Pillow + NumPy).

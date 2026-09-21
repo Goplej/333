@@ -7,6 +7,12 @@ uniform sampler2D colortex2;
 uniform sampler2D depthtex0;
 uniform sampler2D depthtex1;
 uniform sampler2D noisetex;
+#ifdef HD_ASSETS
+uniform sampler2D cloudBaseTex;
+uniform sampler2D cloudDetailTex;
+uniform sampler2D weatherMapTex;
+uniform sampler2D blueNoiseTex;
+#endif
 uniform sampler2D shadowtex0;
 uniform mat4 gbufferProjection;
 uniform mat4 gbufferProjectionInverse;
@@ -34,13 +40,27 @@ vec3 worldFromDepth(vec2 uv, float depth) {
 }
 float linearDepth(float d) { return (2.0*near) / (far+near-d*(far-near)); }
 
+float cloudBaseSample(vec2 uv) {
+#ifdef HD_ASSETS
+    return texture2D(cloudBaseTex,fract(uv)).r;
+#else
+    return texture2D(noisetex,fract(uv)).r;
+#endif
+}
+float cloudDetailSample(vec2 uv) {
+#ifdef HD_ASSETS
+    return texture2D(cloudDetailTex,fract(uv)).r;
+#else
+    return texture2D(noisetex,fract(uv)).g;
+#endif
+}
 float cloudNoise3D(vec3 p, float speed) {
     vec2 wind = vec2(frameTimeCounter * speed, frameTimeCounter * speed * 0.31);
     float z = floor(p.y), f = fract(p.y);
     vec2 a = p.xz + vec2(z*0.071,z*0.113) + wind;
     vec2 b = p.xz + vec2((z+1.0)*0.071,(z+1.0)*0.113) + wind;
     f = f*f*(3.0-2.0*f);
-    return mix(texture2D(noisetex,fract(a)).r,texture2D(noisetex,fract(b)).r,f);
+    return mix(cloudBaseSample(a),cloudBaseSample(b),f);
 }
 float cloudDensity(vec3 p, float height01) {
     // 4 движущихся слоя 2D-noise имитируют 3D Simplex намного дешевле настоящего 3D texture.
@@ -49,6 +69,12 @@ float cloudDensity(vec3 p, float height01) {
     n += cloudNoise3D(p*0.0061+17.0,-0.0011)*0.27;
     n += cloudNoise3D(p*0.0123+41.0,0.0027)*0.15;
     n += cloudNoise3D(p*0.0247+83.0,-0.0039)*0.08;
+#ifdef HD_ASSETS
+    float detail=cloudDetailSample(p.xz*.031+frameTimeCounter*vec2(.0031,-.0022));
+    vec3 weather=texture2D(weatherMapTex,fract(p.xz*.00031+frameTimeCounter*.000025)).rgb;
+    n += (detail-.5)*.075;
+    n += (weather.r-.5)*.12 + (weather.g-.5)*.045;
+#endif
     float vertical = smoothstep(0.0,0.14,height01) * (1.0-smoothstep(0.72,1.0,height01));
     return smoothstep(CLOUD_COVERAGE-0.09,CLOUD_COVERAGE+0.11,n) * vertical;
 }
@@ -62,7 +88,11 @@ vec4 raymarchClouds(vec3 ro, vec3 rd, vec3 sunDir) {
     float t0=max((bottom-ro.y)/rd.y,0.0), t1=(top-ro.y)/rd.y;
     if (t1<=t0 || t0>9000.0) return vec4(0.0);
     float dt=(t1-t0)/float(CLOUD_STEPS);
+#ifdef HD_ASSETS
+    float jitter=texture2D(blueNoiseTex,fract(gl_FragCoord.xy/2048.0+frameTimeCounter*.00013)).r;
+#else
     float jitter=hash12(gl_FragCoord.xy+fract(frameTimeCounter)*19.0);
+#endif
     vec4 sum=vec4(0.0);
     for(int i=0;i<14;i++) {
         if(i>=CLOUD_STEPS || sum.a>0.96) break;

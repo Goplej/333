@@ -7,6 +7,11 @@ precision mediump float;
 #include "/lib/common.glsl"
 #include "/lib/sky.glsl"
 uniform sampler2D noisetex;
+#ifdef HD_ASSETS
+uniform sampler2D cloudBaseTex;
+uniform sampler2D cloudDetailTex;
+uniform sampler2D weatherMapTex;
+#endif
 uniform vec3 sunPosition;
 uniform mat4 gbufferModelViewInverse;
 uniform vec3 cameraPosition;
@@ -23,8 +28,13 @@ float noise3Dcheap(vec3 p, float speed) {
     float f = fract(p.y);
     vec2 uv0 = p.xz + vec2(z * 0.071, z * 0.113) + wind;
     vec2 uv1 = p.xz + vec2((z + 1.0) * 0.071, (z + 1.0) * 0.113) + wind;
+#ifdef HD_ASSETS
+    return mix(texture2D(cloudBaseTex, fract(uv0)).r,
+               texture2D(cloudBaseTex, fract(uv1)).r, f * f * (3.0 - 2.0 * f));
+#else
     return mix(texture2D(noisetex, fract(uv0)).r,
                texture2D(noisetex, fract(uv1)).r, f * f * (3.0 - 2.0 * f));
+#endif
 }
 float cloudShape(vec3 p) {
     // Четыре слоя/октавы движутся с разной скоростью.
@@ -32,6 +42,10 @@ float cloudShape(vec3 p) {
     n += noise3Dcheap(p * 0.0064 * CLOUD_SCALE + 13.1, -0.0012) * 0.27;
     n += noise3Dcheap(p * 0.0128 * CLOUD_SCALE + 37.7, 0.0031) * 0.14;
     n += noise3Dcheap(p * 0.0256 * CLOUD_SCALE + 71.3, -0.0042) * 0.07;
+#ifdef HD_ASSETS
+    n += (texture2D(cloudDetailTex,fract(p.xz*.00013+frameTimeCounter*.0002)).r-.5)*.06;
+    n += (texture2D(weatherMapTex,fract(p.xz*.000025)).r-.5)*.08;
+#endif
     return smoothstep(CLOUD_COVERAGE - 0.10, CLOUD_COVERAGE + 0.12, n);
 }
 void main() {

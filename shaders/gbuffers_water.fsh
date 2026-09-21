@@ -11,6 +11,9 @@ uniform sampler2D lightmap;
 uniform sampler2D colortex0;
 uniform sampler2D depthtex1;
 uniform sampler2D noisetex;
+#ifdef HD_ASSETS
+uniform sampler2D waterNormalsTex;
+#endif
 uniform vec3 sunPosition;
 uniform mat4 gbufferModelViewInverse;
 uniform float frameTimeCounter;
@@ -29,6 +32,10 @@ void main() {
     vec2 wuv = worldPos.xz * 0.018;
     vec2 n1 = texture2D(noisetex, fract(wuv + vec2(frameTimeCounter*.012,-frameTimeCounter*.008))).rg - 0.5;
     vec2 n2 = texture2D(noisetex, fract(wuv*1.83 + vec2(-frameTimeCounter*.017,frameTimeCounter*.013))).rg - 0.5;
+#ifdef HD_ASSETS
+    vec2 hdNormal=texture2D(waterNormalsTex,fract(wuv*.67+vec2(frameTimeCounter*.006,-frameTimeCounter*.004))).rg*2.0-1.0;
+    n1=mix(n1,hdNormal,.72);
+#endif
     vec2 wave = (n1 + n2 * 0.55) * (0.004 + 0.004 * float(WATER_QUALITY));
     vec3 N = normalize(viewNormal + vec3(wave.x, 0.0, wave.y) * 8.0);
     vec3 V = normalize(-viewPos);
